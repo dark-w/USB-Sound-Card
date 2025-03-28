@@ -1051,7 +1051,6 @@ HAL_StatusTypeDef HAL_PCD_Stop(PCD_HandleTypeDef *hpcd)
   * @param  hpcd PCD handle
   * @retval HAL status
   */
-static int debug_count = 0;
 void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 {
   USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
@@ -1073,21 +1072,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       return;
     }
 
-//    log_put("in:%d%d%d%d%d%d%d%d%d%d%d%d%d%d ", __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_MMIS),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_RXFLVL),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_OEPINT),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_IEPINT),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_WKUINT),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_USBSUSP),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_USBRST),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_ENUMDNE),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_SOF),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_BOUTNAKEFF),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_IISOIXFR),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_SRQINT),
-//        __HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_OTGINT));
-
     /* store current frame number */
     hpcd->FrameNumber = (USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF_Msk) >> USB_OTG_DSTS_FNSOF_Pos;
 
@@ -1098,10 +1082,8 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     }
 
     /* Handle RxQLevel Interrupt */
-
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_RXFLVL))
     {
-
       USB_MASK_INTERRUPT(hpcd->Instance, USB_OTG_GINTSTS_RXFLVL);
 
       RegVal = USBx->GRXSTSP;
@@ -1117,8 +1099,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           ep->xfer_buff += (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
           ep->xfer_count += (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
-
-          debug_count++;
         }
       }
       else if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) == STS_SETUP_UPDT)
@@ -1130,13 +1110,12 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       {
         /* ... */
       }
-//      log_put("RXFLVL %lu ", ep->xfer_count);
+
       USB_UNMASK_INTERRUPT(hpcd->Instance, USB_OTG_GINTSTS_RXFLVL);
     }
 
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_OEPINT))
     {
-
       epnum = 0U;
 
       /* Read in the device interrupt bits */
@@ -1150,15 +1129,12 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_XFRC) == USB_OTG_DOEPINT_XFRC)
           {
-//            log_put("XFRC %u %d ", epnum, debug_count);
-            debug_count = 0;
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_XFRC);
             (void)PCD_EP_OutXfrComplete_int(hpcd, epnum);
           }
 
           if ((epint & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
           {
-            log_put("STUP %u ", epnum);
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_STUP);
             /* Class B setup phase done for previous decoded setup */
             (void)PCD_EP_OutSetupPacket_int(hpcd, epnum);
@@ -1166,14 +1142,12 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_OTEPDIS) == USB_OTG_DOEPINT_OTEPDIS)
           {
-            log_put("OTEPDIS %u ", epnum);
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_OTEPDIS);
           }
 
           /* Clear OUT Endpoint disable interrupt */
           if ((epint & USB_OTG_DOEPINT_EPDISD) == USB_OTG_DOEPINT_EPDISD)
           {
-            log_put("EPDISD %u ", epnum);
             if ((USBx->GINTSTS & USB_OTG_GINTSTS_BOUTNAKEFF) == USB_OTG_GINTSTS_BOUTNAKEFF)
             {
               USBx_DEVICE->DCTL |= USB_OTG_DCTL_CGONAK;
@@ -1188,7 +1162,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
               hpcd->ISOOUTIncompleteCallback(hpcd, (uint8_t)epnum);
 #else
-              log_put("HAL_PCD_ISOOUTIncompleteCallback", epnum);
               HAL_PCD_ISOOUTIncompleteCallback(hpcd, (uint8_t)epnum);
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
             }
@@ -1199,14 +1172,12 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           /* Clear Status Phase Received interrupt */
           if ((epint & USB_OTG_DOEPINT_OTEPSPR) == USB_OTG_DOEPINT_OTEPSPR)
           {
-            log_put("OTEPSPR %u ", epnum);
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_OTEPSPR);
           }
 
           /* Clear OUT NAK interrupt */
           if ((epint & USB_OTG_DOEPINT_NAK) == USB_OTG_DOEPINT_NAK)
           {
-            log_put("NAK %u ", epnum);
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_NAK);
           }
         }
@@ -1362,7 +1333,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       }
     }
 #endif /* defined(STM32F446xx) || defined(STM32F469xx) || defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) || defined(STM32F413xx) || defined(STM32F423xx) */
-
     /* Handle Reset Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_USBRST))
     {

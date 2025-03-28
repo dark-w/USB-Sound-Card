@@ -27,7 +27,9 @@
 #include "usbd_audio_if.h"
 #include "stm32f4_discovery.h"
 #include "cs43l22.h"
+#include "oled_sh1106.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
 /* USER CODE END Includes */
@@ -57,6 +59,8 @@ struct log_msg
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
+DMA_HandleTypeDef hdma_i2c2_tx;
 
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi3_tx;
@@ -75,6 +79,13 @@ const osThreadAttr_t userTask_attributes = {
 osThreadId_t logTaskHandle;
 const osThreadAttr_t logTask_attributes = {
   .name = "logTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for guiTask */
+osThreadId_t guiTaskHandle;
+const osThreadAttr_t guiTask_attributes = {
+  .name = "guiTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -108,8 +119,10 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
+static void MX_I2C2_Init(void);
 void StartDefaultTask(void *argument);
 void StartTask02(void *argument);
+void StartTask03(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -224,6 +237,12 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
   }
 }
 
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+  UNUSED(hi2c);
+
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -258,6 +277,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_I2S3_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   // init codec
   BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_AUTO, 70, 12345);
@@ -295,6 +315,9 @@ int main(void)
 
   /* creation of logTask */
   logTaskHandle = osThreadNew(StartTask02, NULL, &logTask_attributes);
+
+  /* creation of guiTask */
+  guiTaskHandle = osThreadNew(StartTask03, NULL, &guiTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -404,6 +427,40 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 400000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
   * @brief I2S3 Initialization Function
   * @param None
   * @retval None
@@ -486,6 +543,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA1_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
 }
 
@@ -502,8 +562,8 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -629,6 +689,59 @@ void StartTask02(void *argument)
     osDelay(10);
   }
   /* USER CODE END StartTask02 */
+}
+
+/* USER CODE BEGIN Header_StartTask03 */
+//static uint8_t to_display_buffer[DISPLAY_BUFFER_PAGE_NUM][DISPLAY_BUFFER_PAGE_PN];
+/**
+* @brief Function implementing the guiTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask03 */
+void StartTask03(void *argument)
+{
+  /* USER CODE BEGIN StartTask03 */
+  OLED_SH1106_init();
+  OLED_SH1106_clear();
+
+  uint8_t omega_arr[128] = {0};
+  int pos = 0;
+  const uint8_t WAVE_AMPLITUDE = 31;  // 峰值振幅（0-63）
+  const uint8_t  WAVE_PERIOD = 64;   // 波形周期（点数）
+  /* Infinite loop */
+  for(;;)
+  {
+    pos = pos + 1;
+    memset(omega_arr, 0, 128);
+
+//    for (int i = 0; i < 50; i++) {
+//      omega_arr[(pos + i) % 128] = i;
+//      omega_arr[(pos + i + 50) % 128] = 50 - i;
+//    }
+
+    // 生成正弦波
+    for (int i = 0; i < OLED_X_LEN; i++) {
+        // 计算相位（pos控制波形滚动）
+        float phase = 2 * M_PI * ((i + pos) % WAVE_PERIOD) / WAVE_PERIOD;
+
+        // 计算正弦值并映射到[0, 2*AMPLITUDE]范围
+        float sin_value = sin(phase);
+        uint8_t amplitude = (uint8_t)(WAVE_AMPLITUDE * sin_value + WAVE_AMPLITUDE);
+
+        // 限幅保护
+        amplitude = (amplitude > 63) ? 63 : amplitude;
+        omega_arr[i] = amplitude;
+    }
+
+    spectrum_buffer_write(omega_arr, 1);
+    // copy to_display_buffer into display_buffer n
+    // display
+    OLED_SH1106_buffer_display(1);
+
+    osDelay(30);
+  }
+  /* USER CODE END StartTask03 */
 }
 
 /**

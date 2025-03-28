@@ -740,13 +740,6 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
   * @param  epnum: endpoint index
   * @retval status
   */
-//static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum)
-//{
-//  UNUSED(pdev);
-//  UNUSED(epnum);
-//
-//  return (uint8_t)USBD_OK;
-//}
 static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   USBD_AUDIO_HandleTypeDef *haudio;

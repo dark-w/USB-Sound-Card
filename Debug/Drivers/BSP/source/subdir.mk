@@ -6,14 +6,17 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Drivers/BSP/source/cs43l22.c \
+../Drivers/BSP/source/oled_sh1106.c \
 ../Drivers/BSP/source/stm32f4_discovery.c 
 
 OBJS += \
 ./Drivers/BSP/source/cs43l22.o \
+./Drivers/BSP/source/oled_sh1106.o \
 ./Drivers/BSP/source/stm32f4_discovery.o 
 
 C_DEPS += \
 ./Drivers/BSP/source/cs43l22.d \
+./Drivers/BSP/source/oled_sh1106.d \
 ./Drivers/BSP/source/stm32f4_discovery.d 
 
 
@@ -24,7 +27,7 @@ Drivers/BSP/source/%.o Drivers/BSP/source/%.su Drivers/BSP/source/%.cyclo: ../Dr
 clean: clean-Drivers-2f-BSP-2f-source
 
 clean-Drivers-2f-BSP-2f-source:
-	-$(RM) ./Drivers/BSP/source/cs43l22.cyclo ./Drivers/BSP/source/cs43l22.d ./Drivers/BSP/source/cs43l22.o ./Drivers/BSP/source/cs43l22.su ./Drivers/BSP/source/stm32f4_discovery.cyclo ./Drivers/BSP/source/stm32f4_discovery.d ./Drivers/BSP/source/stm32f4_discovery.o ./Drivers/BSP/source/stm32f4_discovery.su
+	-$(RM) ./Drivers/BSP/source/cs43l22.cyclo ./Drivers/BSP/source/cs43l22.d ./Drivers/BSP/source/cs43l22.o ./Drivers/BSP/source/cs43l22.su ./Drivers/BSP/source/oled_sh1106.cyclo ./Drivers/BSP/source/oled_sh1106.d ./Drivers/BSP/source/oled_sh1106.o ./Drivers/BSP/source/oled_sh1106.su ./Drivers/BSP/source/stm32f4_discovery.cyclo ./Drivers/BSP/source/stm32f4_discovery.d ./Drivers/BSP/source/stm32f4_discovery.o ./Drivers/BSP/source/stm32f4_discovery.su
 
 .PHONY: clean-Drivers-2f-BSP-2f-source
 

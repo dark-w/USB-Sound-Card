@@ -26,6 +26,7 @@
 #include "usbd_audio.h"
 #include "usbd_audio_if.h"
 #include "stm32f4_discovery.h"
+#include "stm32f4_discovery_accelerometer.h"
 #include "cs43l22.h"
 #include "oled_sh1106.h"
 
@@ -65,6 +66,8 @@ DMA_HandleTypeDef hdma_i2c2_tx;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi3_tx;
 
+SPI_HandleTypeDef hspi1;
+
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
@@ -86,12 +89,12 @@ const osThreadAttr_t logTask_attributes = {
 osThreadId_t guiTaskHandle;
 const osThreadAttr_t guiTask_attributes = {
   .name = "guiTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for myQueue01 */
 osMessageQueueId_t myQueue01Handle;
-uint8_t logRingBuffer[ 512 * sizeof( struct log_msg * ) ];
+uint8_t logRingBuffer[ 32 * sizeof( struct log_msg * ) ];
 osStaticMessageQDef_t logRingBufferControlBlock;
 const osMessageQueueAttr_t myQueue01_attributes = {
   .name = "myQueue01",
@@ -120,6 +123,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_SPI1_Init(void);
 void StartDefaultTask(void *argument);
 void StartTask02(void *argument);
 void StartTask03(void *argument);
@@ -243,6 +247,25 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 }
 
+//static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum)
+//{
+//  USBD_AUDIO_HandleTypeDef *haudio;
+//
+//  if (pdev->pClassDataCmsit[pdev->classId] == NULL)
+//  {
+//    return (uint8_t)USBD_FAIL;
+//  }
+//
+//  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
+//
+//  /* Prepare Out endpoint to receive next audio packet */
+//  (void)USBD_LL_PrepareReceive(pdev, epnum,
+//                               &haudio->buffer[haudio->wr_ptr],
+//                               AUDIO_OUT_PACKET);
+//
+//  return (uint8_t)USBD_OK;
+//}
+
 /* USER CODE END 0 */
 
 /**
@@ -275,12 +298,14 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
-  MX_I2C1_Init();
+//  MX_I2C1_Init();
   MX_I2S3_Init();
   MX_I2C2_Init();
+//  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   // init codec
   BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_AUTO, 70, 12345);
+  osMemoryPool = osMemoryPoolNew(32, sizeof(struct log_msg), NULL);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -303,7 +328,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of myQueue01 */
-  myQueue01Handle = osMessageQueueNew (512, sizeof(struct log_msg *), &myQueue01_attributes);
+  myQueue01Handle = osMessageQueueNew (32, sizeof(struct log_msg *), &myQueue01_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -401,11 +426,11 @@ static void MX_I2C1_Init(void)
 {
 
   /* USER CODE BEGIN I2C1_Init 0 */
-//
+//////
   /* USER CODE END I2C1_Init 0 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
-//
+//////
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
@@ -421,7 +446,7 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C1_Init 2 */
-//
+//////
   /* USER CODE END I2C1_Init 2 */
 
 }
@@ -491,6 +516,44 @@ static void MX_I2S3_Init(void)
   /* USER CODE BEGIN I2S3_Init 2 */
 
   /* USER CODE END I2S3_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+////
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+////
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+////
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
@@ -631,7 +694,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   uint32_t count = 0;
   // total heap size = 15360
-  osMemoryPool = osMemoryPoolNew(256, sizeof(struct log_msg), NULL);
+
 
   MX_USB_DEVICE_Init();
   /* Infinite loop */
@@ -705,33 +768,45 @@ void StartTask03(void *argument)
   OLED_SH1106_init();
   OLED_SH1106_clear();
 
+  BSP_ACCELERO_Init();
+
+  int16_t accelero_buffer[3] = {0};
+
   uint8_t omega_arr[128] = {0};
   int pos = 0;
-  const uint8_t WAVE_AMPLITUDE = 31;  // 峰值振幅（0-63）
+  const uint8_t WAVE_AMPLITUDE = 31;  // 峰�?�振幅（0-63�???
   const uint8_t  WAVE_PERIOD = 64;   // 波形周期（点数）
   /* Infinite loop */
   for(;;)
   {
-    pos = pos + 1;
     memset(omega_arr, 0, 128);
+
+    BSP_ACCELERO_GetXYZ(accelero_buffer);
+
+    log_put("%d %d %d\n", accelero_buffer[0], accelero_buffer[1], accelero_buffer[2]);
+
+    if (accelero_buffer[0] < 0)
+      pos = pos + 2;
+    else
+      pos = pos - 2;
 
 //    for (int i = 0; i < 50; i++) {
 //      omega_arr[(pos + i) % 128] = i;
 //      omega_arr[(pos + i + 50) % 128] = 50 - i;
 //    }
 
-    // 生成正弦波
+
     for (int i = 0; i < OLED_X_LEN; i++) {
-        // 计算相位（pos控制波形滚动）
-        float phase = 2 * M_PI * ((i + pos) % WAVE_PERIOD) / WAVE_PERIOD;
 
-        // 计算正弦值并映射到[0, 2*AMPLITUDE]范围
-        float sin_value = sin(phase);
-        uint8_t amplitude = (uint8_t)(WAVE_AMPLITUDE * sin_value + WAVE_AMPLITUDE);
+      float phase = 2 * M_PI * ((i + pos) % WAVE_PERIOD) / WAVE_PERIOD;
 
-        // 限幅保护
-        amplitude = (amplitude > 63) ? 63 : amplitude;
-        omega_arr[i] = amplitude;
+      // 计算正弦值并映射到[0, 2*AMPLITUDE]范围
+      float sin_value = sin(phase);
+      uint8_t amplitude = (uint8_t)(WAVE_AMPLITUDE * sin_value + WAVE_AMPLITUDE);
+
+      // 限幅保护
+      amplitude = (amplitude > 63) ? 63 : amplitude;
+      omega_arr[i] = amplitude;
     }
 
     spectrum_buffer_write(omega_arr, 1);

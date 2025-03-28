@@ -6,18 +6,24 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Drivers/BSP/source/cs43l22.c \
+../Drivers/BSP/source/lis3dsh.c \
 ../Drivers/BSP/source/oled_sh1106.c \
-../Drivers/BSP/source/stm32f4_discovery.c 
+../Drivers/BSP/source/stm32f4_discovery.c \
+../Drivers/BSP/source/stm32f4_discovery_accelerometer.c 
 
 OBJS += \
 ./Drivers/BSP/source/cs43l22.o \
+./Drivers/BSP/source/lis3dsh.o \
 ./Drivers/BSP/source/oled_sh1106.o \
-./Drivers/BSP/source/stm32f4_discovery.o 
+./Drivers/BSP/source/stm32f4_discovery.o \
+./Drivers/BSP/source/stm32f4_discovery_accelerometer.o 
 
 C_DEPS += \
 ./Drivers/BSP/source/cs43l22.d \
+./Drivers/BSP/source/lis3dsh.d \
 ./Drivers/BSP/source/oled_sh1106.d \
-./Drivers/BSP/source/stm32f4_discovery.d 
+./Drivers/BSP/source/stm32f4_discovery.d \
+./Drivers/BSP/source/stm32f4_discovery_accelerometer.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -27,7 +33,7 @@ Drivers/BSP/source/%.o Drivers/BSP/source/%.su Drivers/BSP/source/%.cyclo: ../Dr
 clean: clean-Drivers-2f-BSP-2f-source
 
 clean-Drivers-2f-BSP-2f-source:
-	-$(RM) ./Drivers/BSP/source/cs43l22.cyclo ./Drivers/BSP/source/cs43l22.d ./Drivers/BSP/source/cs43l22.o ./Drivers/BSP/source/cs43l22.su ./Drivers/BSP/source/oled_sh1106.cyclo ./Drivers/BSP/source/oled_sh1106.d ./Drivers/BSP/source/oled_sh1106.o ./Drivers/BSP/source/oled_sh1106.su ./Drivers/BSP/source/stm32f4_discovery.cyclo ./Drivers/BSP/source/stm32f4_discovery.d ./Drivers/BSP/source/stm32f4_discovery.o ./Drivers/BSP/source/stm32f4_discovery.su
+	-$(RM) ./Drivers/BSP/source/cs43l22.cyclo ./Drivers/BSP/source/cs43l22.d ./Drivers/BSP/source/cs43l22.o ./Drivers/BSP/source/cs43l22.su ./Drivers/BSP/source/lis3dsh.cyclo ./Drivers/BSP/source/lis3dsh.d ./Drivers/BSP/source/lis3dsh.o ./Drivers/BSP/source/lis3dsh.su ./Drivers/BSP/source/oled_sh1106.cyclo ./Drivers/BSP/source/oled_sh1106.d ./Drivers/BSP/source/oled_sh1106.o ./Drivers/BSP/source/oled_sh1106.su ./Drivers/BSP/source/stm32f4_discovery.cyclo ./Drivers/BSP/source/stm32f4_discovery.d ./Drivers/BSP/source/stm32f4_discovery.o ./Drivers/BSP/source/stm32f4_discovery.su ./Drivers/BSP/source/stm32f4_discovery_accelerometer.cyclo ./Drivers/BSP/source/stm32f4_discovery_accelerometer.d ./Drivers/BSP/source/stm32f4_discovery_accelerometer.o ./Drivers/BSP/source/stm32f4_discovery_accelerometer.su
 
 .PHONY: clean-Drivers-2f-BSP-2f-source
 
